@@ -1,0 +1,46 @@
+version: '3'
+
+env:
+  AWS_ACCESS_KEY_ID:
+    sh: op item get "OpenTofu Backblaze B2" --format=json --vault DevOps --fields="application-key-id" | jq -r '.value'
+  AWS_SECRET_ACCESS_KEY:
+    sh: op item get "OpenTofu Backblaze B2" --format=json --vault DevOps --fields="application-key" | jq -r '.value'
+  XO_PASSWORD:
+    sh: op item get "Xen Orchestra" --format=json --vault Private --fields="password" | jq -r '.value'
+
+
+tasks:
+  local-*:
+    vars:
+      TASK: "{{index .MATCH 0}}"
+      DEFAULT_TF_MODULES_PATH: '{{joinPath .TASKFILE_DIR "../terraform-modules"}}'
+      TF_MODULES_PATH: '{{default .DEFAULT_TF_MODULES_PATH .TF_MODULES_PATH}}'
+    cmds:
+      - task: "{{.TASK}}"
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}} --terragrunt-source $(realpath {{.TF_MODULES_PATH}})"
+  init:
+    requires:
+      vars: [AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID]
+    cmds:
+      - 'terragrunt run-all init -upgrade -migrate-state {{.CLI_ARGS}}'
+  plan:
+    requires:
+      vars: [AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID, XO_PASSWORD]
+    cmds:
+      - 'terragrunt run-all plan {{.CLI_ARGS}}'
+  apply:
+    requires:
+      vars: [AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID, XO_PASSWORD]
+    cmds:
+      - 'terragrunt run-all apply {{.CLI_ARGS}}'
+  destroy:
+    requires:
+      vars: [AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID, XO_PASSWORD]
+    cmds:
+      - 'terragrunt run-all destroy {{.CLI_ARGS}}'
+  cmd:
+    requires:
+      vars: [AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID, XO_PASSWORD]
+    cmds:
+      - 'terragrunt {{.CLI_ARGS}}'
