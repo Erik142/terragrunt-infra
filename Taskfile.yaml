@@ -14,39 +14,83 @@ env:
   XO_PASSWORD:
     sh: op item get "Xen Orchestra" --format=json --vault Private --fields="password" | jq -r '.value'
 
+vars:
+  EXEC_DIR: '{{default .TASKFILE_DIR .EXEC_DIR}}'
+  GLOB_TG_ARGS: '--terragrunt-working-dir {{.EXEC_DIR}}'
 
 tasks:
-  local-*:
+  ^all-*:
     vars:
       TASK: "{{index .MATCH 0}}"
-      DEFAULT_TF_MODULES_PATH: '{{joinPath .TASKFILE_DIR "../terraform-modules"}}'
+    cmds:
+      - task: "{{.TASK}}"
+        vars:
+          ALL_MODULES: "run-all"
+          TG_ARGS: "{{.TG_ARGS}}"
+  ^local-*:
+    vars:
+      TASK: "{{index .MATCH 0}}"
+      DEFAULT_TF_MODULES_PATH: '{{joinPath .TASKFILE_DIR "../tofu-modules"}}'
       TF_MODULES_PATH: '{{default .DEFAULT_TF_MODULES_PATH .TF_MODULES_PATH}}'
     cmds:
       - task: "{{.TASK}}"
         vars:
-          CLI_ARGS: "{{.CLI_ARGS}} --terragrunt-source $(realpath {{.TF_MODULES_PATH}})"
+          ALL_MODULES: "{{.ALL_MODULES}}"
+          CLI_ARGS: "{{.GLOB_CLI_ARGS}} {{.CLI_ARGS}}"
+          TG_ARGS: "{{.GLOB_TG_ARGS}} --terragrunt-source-map \"git::git@github.com:erik142/tofu-modules.git=$(realpath {{.TF_MODULES_PATH}})\""
   init:
     requires:
       vars: [AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID]
     cmds:
-      - 'terragrunt run-all init -upgrade -migrate-state {{.CLI_ARGS}}'
+      - task: exec-cmd
+        vars:
+          CMD: init
+          ALL_MODULES: "{{.ALL_MODULES}}"
+          CLI_ARGS: "-upgrade {{.CLI_ARGS}}"
+          TG_ARGS: "{{.TG_ARGS}}"
   plan:
     requires:
       vars: [AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID, XO_PASSWORD]
     cmds:
-      - 'terragrunt run-all plan {{.CLI_ARGS}}'
+      - echo "EXEC_DIR={{.EXEC_DIR}}"
+      - task: exec-cmd
+        vars:
+          CMD: plan
+          ALL_MODULES: "{{.ALL_MODULES}}"
+          CLI_ARGS: "{{.CLI_ARGS}}"
+          TG_ARGS: "{{.TG_ARGS}}"
   apply:
     requires:
       vars: [AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID, XO_PASSWORD]
     cmds:
-      - 'terragrunt run-all apply {{.CLI_ARGS}}'
+      - task: exec-cmd
+        vars:
+          CMD: apply
+          ALL_MODULES: "{{.ALL_MODULES}}"
+          CLI_ARGS: "{{.CLI_ARGS}}"
+          TG_ARGS: "{{.TG_ARGS}}"
   destroy:
     requires:
       vars: [AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID, XO_PASSWORD]
     cmds:
-      - 'terragrunt run-all destroy {{.CLI_ARGS}}'
-  cmd:
+      - task: exec-cmd
+        vars:
+          CMD: destroy
+          ALL_MODULES: "{{.ALL_MODULES}}"
+          CLI_ARGS: "{{.CLI_ARGS}}"
+          TG_ARGS: "{{.TG_ARGS}}"
+  exec-*:
     requires:
       vars: [AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID, XO_PASSWORD]
     cmds:
-      - 'terragrunt {{.CLI_ARGS}}'
+      - task: exec-cmd
+        vars:
+          CMD: "{{index .MATCH 0}}"
+          ALL_MODULES: "{{.ALL_MODULES}}"
+          CLI_ARGS: "{{.CLI_ARGS}}"
+          TG_ARGS: "{{.TG_ARGS}}"
+  exec-cmd:
+    requires:
+      vars: [AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID, XO_PASSWORD]
+    cmds:
+      - 'terragrunt {{.ALL_MODULES}} {{.TG_ARGS}} {{.CMD}} {{.CLI_ARGS}}'
