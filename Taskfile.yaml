@@ -5,6 +5,10 @@ env:
     sh: op item get "OpenTofu Backblaze B2" --format=json --vault DevOps --fields="application-key-id" | jq -r '.value'
   AWS_SECRET_ACCESS_KEY:
     sh: op item get "OpenTofu Backblaze B2" --format=json --vault DevOps --fields="application-key" | jq -r '.value'
+  XO_HOST:
+    sh: op item get "Xen Orchestra" --format=json --vault Private | jq -r '.urls[] | select(.label=="host") | .href'
+  XO_USERNAME:
+    sh: op item get "Xen Orchestra" --format=json --vault Private --fields="username" | jq -r '.value'
   XO_PASSWORD:
     sh: op item get "Xen Orchestra" --format=json --vault Private --fields="password" | jq -r '.value'
 
