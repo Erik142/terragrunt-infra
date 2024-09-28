@@ -5,6 +5,8 @@ env:
     sh: op item get "OpenTofu Backblaze B2" --format=json --vault DevOps --fields="application-key-id" | jq -r '.value'
   AWS_SECRET_ACCESS_KEY:
     sh: op item get "OpenTofu Backblaze B2" --format=json --vault DevOps --fields="application-key" | jq -r '.value'
+  FLUX_AGE_KEY:
+    sh: op item get "Flux Terraform Age Private Key" --format=json --vault Private --fields="private-key" | jq -r '.value'
   XO_HOST:
     sh: op item get "Xen Orchestra" --format=json --vault Private | jq -r '.urls[] | select(.label=="host") | .href'
   XO_USERNAME:
