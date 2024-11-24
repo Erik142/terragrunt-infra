@@ -1,17 +1,21 @@
-terraform {
-  # Deploy version v0.0.1 in stage
-  source = "git::git@github.com:erik142/tofu-modules.git//talos/talos_xcp-ng_cluster?ref=v0.0.1"
-}
-
 include "root" {
   path = find_in_parent_folders()
+}
+
+include "env" {
+  path   = "${get_terragrunt_dir()}/../../_env/infra.hcl"
+  expose = true
+}
+
+terraform {
+  source = "${include.env.locals.tofu_modules_base_url}//kubernetes/talos_xcp_ng?ref=${include.env.locals.tofu_modules_version}"
 }
 
 inputs = {
   talos_control_plane_node_count = 3
   talos_worker_node_count        = 3
-  talos_iso_version              = "1.8.0"
-  talos_iso_schematic_id         = "53b20d86399013eadfd44ee49804c1fef069bfdee3b43f3f3f5a2f57c03338ac"
+  talos_iso_version              = "${include.env.locals.talos_iso_version}"
+  talos_iso_schematic_id         = "${include.env.locals.talos_iso_schematic_id}"
   xenorchestra_hostname          = get_env("XO_HOST")
   xenorchestra_username          = get_env("XO_USERNAME")
   xenorchestra_password          = get_env("XO_PASSWORD")

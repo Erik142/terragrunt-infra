@@ -1,10 +1,15 @@
+locals {
+  env_vars              = read_terragrunt_config("${get_repo_root()}/common/env.hcl")
+  tofu_modules_base_url = local.env_vars.locals.tofu_modules_base_url
+  tofu_modules_version  = local.env_vars.locals.tofu_modules_version
+}
+
 terraform {
-  # Deploy version v0.0.1 in stage
-  source = "git::git@github.com:erik142/tofu-modules.git//kubernetes/flux?ref=v0.0.1"
+  source = "${local.tofu_modules_base_url}//kubernetes/flux?ref=${local.tofu_modules_version}"
 }
 
 dependency "talos" {
-  config_path = "../talos_bootstrap"
+  config_path = "${get_terragrunt_dir()}/../talos"
 
   mock_outputs = {
     kubernetes_client_configuration = {
@@ -17,16 +22,10 @@ dependency "talos" {
   mock_outputs_allowed_terraform_commands = ["init", "validate"]
 }
 
-include "root" {
-  path = find_in_parent_folders()
-}
-
 inputs = {
-  flux_cluster_name                      = "dev_hetzner"
   flux_interval                          = "15s"
   flux_github_owner                      = "Erik142"
   flux_github_repository                 = "flux-personal"
-  flux_github_repository_branch          = "dev"
   flux_github_secrets_repository         = "flux-secrets"
   flux_github_token                      = get_env("GITHUB_TOKEN")
   flux_age_private_key                   = get_env("FLUX_AGE_KEY")
