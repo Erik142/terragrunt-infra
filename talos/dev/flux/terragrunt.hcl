@@ -8,5 +8,5 @@ include "env" {
 
 inputs = {
   flux_github_repository_branch = "dev"
-  flux_cluster_name             = "dev_hetzner"
+  flux_cluster_name             = "dev/mgmt"
 }
